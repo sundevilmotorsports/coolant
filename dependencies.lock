@@ -1,0 +1,18 @@
+dependencies:
+  idf:
+    source:
+      type: idf
+    version: 5.5.5
+  sdm-utils:
+    component_hash: a135eaa0162befdccae57d378183ac39cd9dd250dfb2c0845dacd03df3e20e7b
+    dependencies: []
+    source:
+      git: https://github.com/sundevilmotorsports/sdm-utils.git
+      path: .
+      type: git
+    version: 68ccff1f53cac390b3ea48cf0ae8ab630805065e
+direct_dependencies:
+- sdm-utils
+manifest_hash: cffdc63e9e37c67e6106589ffcae8a933d71a051a95ee07f2ad1bd3d669e1d0d
+target: esp32c5
+version: 2.0.0
