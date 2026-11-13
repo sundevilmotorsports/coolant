@@ -1,4 +1,5 @@
 build
+/managed_components
 
 sdkconfig
 sdkconfig.old
@@ -12,7 +13,9 @@ CODEX.md
 AGENTS.md
 
 dbc/check_logger_config.py
-.codex
+.agents
 
 requirements.txt
 test*.txt
+
+sdm-utils.md

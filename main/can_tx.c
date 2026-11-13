@@ -6,6 +6,8 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
+#include "sdm/can_id.h"
+#include "sdm/heartbeat.h"
 
 #include "can_tx.h"
 #include "cooling_system.h"
@@ -20,10 +22,11 @@ static volatile bool s_recover_pending = false;
 static flow_data_t s_data;
 static float s_temp_c[4] = {NAN, NAN, NAN, NAN};
 static portMUX_TYPE s_data_mux = portMUX_INITIALIZER_UNLOCKED; // prevents reading partial writes
-enum { TX_FLOW1, TX_FLOW2, TX_TEMP, TX_FRAME_COUNT }; // slots 
+enum { TX_FLOW1, TX_FLOW2, TX_TEMP, TX_HEARTBEAT, TX_FRAME_COUNT }; // slots
+#define HEARTBEAT_PERIOD_MS 500
 
-// TWAI retains frame/buffer pointers until TX done
-static twai_frame_t s_tx_frames[TX_FRAME_COUNT];
+// TWAI retains frame/buffer pointers until TX done; sdm-utils IDs are extended
+static twai_frame_t s_tx_frames[TX_FRAME_COUNT] = {[TX_HEARTBEAT].header.ide = 1};
 static bool s_tx_busy[TX_FRAME_COUNT];
 
 // checks if frame is busy
@@ -144,9 +147,17 @@ static void can_tx_timer_cb(void *arg) {
         can_tx_send(TX_FLOW2, COOLING_SYSTEM_FLOW2_FRAME_ID, s_buf2, sizeof(s_buf2));
     }
 
+    // heartbeat before TEMP, which returns early while temperatures are invalid
+    static int64_t next_heartbeat_us = 0;
+    int64_t now_us = esp_timer_get_time();
+    if (now_us >= next_heartbeat_us && can_tx_claim(TX_HEARTBEAT)) {
+        next_heartbeat_us = now_us + HEARTBEAT_PERIOD_MS * 1000ULL;
+        static uint8_t s_heartbeat_buf[1] = {SDM_TYPE_COOLANT};
+        can_tx_send(TX_HEARTBEAT, sdm_can_id(SDM_MSG_HEARTBEAT, SDM_NODE_COOLANT), s_heartbeat_buf, sizeof(s_heartbeat_buf));
+    }
+
     // timing
     static int64_t next_temp_tx_us = 0;
-    int64_t now_us = esp_timer_get_time();
     if (now_us < next_temp_tx_us) {
         return;
     }

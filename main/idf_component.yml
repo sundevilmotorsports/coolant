@@ -1,0 +1,4 @@
+dependencies:
+  sdm-utils:
+    git: https://github.com/sundevilmotorsports/sdm-utils.git
+    version: master
